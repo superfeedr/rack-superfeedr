@@ -70,7 +70,7 @@ module Rack
     end
 
     ##
-    # When using this Rack, you need to supply the following arguments:
+    # When using this Rack, you need to supply the following params (2nd argument):
     # - :host (the host for your web app. Used to build the callback urls.)
     # - :login
     # - :password

@@ -15,7 +15,7 @@ require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "rack-superfeedr"
-  gem.homepage = "http://github.com/superfeedr/rack-superfeedr"
+  gem.homepage = "http://rubygems.org/gems/rack-superfeedr"
   gem.license = "MIT"
   gem.add_dependency "rack"
   gem.add_dependency "nokogiri"

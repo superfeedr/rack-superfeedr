@@ -1,6 +1,14 @@
 = rack-superfeedr
 
-A gem that provides a rack middleware to interact with Superfeedr's PubSubHubbub API. It let you subscribe, unsubscribe and receive incoming notifications.
+A gem that provides a rack middleware to interact with {Superfeedr}[http://superfeedr.com/]'s PubSubHubbub API. It let you _subscribe, unsubscribe and receive incoming feed notifications_.
+
+== Installing
+
+    gem install  rack-superfeedr
+    
+== Using
+
+See the {example}[https://github.com/superfeedr/rack-superfeedr/blob/master/examples/sinatra_app.rb]... and {check the docs}[http://rubydoc.info/github/superfeedr/rack-superfeedr/master/Rack/Superfeedr] for more details. 
 
 == Contributing to rack-superfeedr
  
