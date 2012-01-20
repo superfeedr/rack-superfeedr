@@ -10,11 +10,11 @@ get '/hi' do
 end
 
 get '/subscribe' do
-  Superfeedr.subscribe("http://push-pub.appspot.com/feed", 123) 
+  Superfeedr.subscribe("http://push-pub.appspot.com/feed") 
 end
 
 get '/unsubscribe' do
-  Superfeedr.unsubscribe("http://push-pub.appspot.com/feed", 123)
+  Superfeedr.unsubscribe("http://push-pub.appspot.com/feed")
 end
 
 Superfeedr.on_notification do |notification|
