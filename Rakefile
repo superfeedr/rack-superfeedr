@@ -15,12 +15,15 @@ require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "rack-superfeedr"
-  gem.homepage = "http://github.com/julien51/rack-superfeedr"
+  gem.homepage = "http://github.com/superfeedr/rack-superfeedr"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
-  gem.email = "julien.genestoux@gmail.com"
-  gem.authors = ["julien"]
+  gem.add_dependency "rack"
+  gem.add_dependency "nokogiri"
+  gem.add_dependency "typhoeus"
+  gem.summary = %Q{A gem that provides a rack middleware to interract with Superfeedr's API. }
+  gem.description = %Q{A gem that provides a rack middleware to interract with Superfeedr's API. }
+  gem.email = "julien@superfeedr.com"
+  gem.authors = ["julien51"]
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
