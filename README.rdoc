@@ -27,7 +27,7 @@ Install the gem (using bundle), and then in <code>config/application.rb</code>, 
     Superfeedr = superfeedr
   end
 
-You can then access the Superfeedr object anywhere in your rails application with <code>YOUR_APP_::Application::Superfeedr</code>.
+You can then access the Superfeedr object anywhere in your rails application with <code>YOUR_APP::Application::Superfeedr</code>.
 
 
 == Contributing
