@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{rack-superfeedr}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["julien51"]
-  s.date = %q{2012-01-19}
+  s.date = %q{2012-01-21}
   s.description = %q{A gem that provides a rack middleware to interract with Superfeedr's API. }
   s.email = %q{julien@superfeedr.com}
   s.extra_rdoc_files = [
@@ -19,16 +19,18 @@ Gem::Specification.new do |s|
   s.files = [
     ".document",
     "Gemfile",
+    "Gemfile.lock",
     "LICENSE.txt",
     "README.rdoc",
     "Rakefile",
     "VERSION",
     "examples/sinatra_app.rb",
     "lib/rack-superfeedr.rb",
+    "rack-superfeedr.gemspec",
     "test/helper.rb",
     "test/test_rack-superfeedr.rb"
   ]
-  s.homepage = %q{http://github.com/superfeedr/rack-superfeedr}
+  s.homepage = %q{http://rubygems.org/gems/rack-superfeedr}
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.6.2}
