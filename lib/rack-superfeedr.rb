@@ -87,6 +87,7 @@ module Rack
       @params = params
       @app = app
       block.call(self)
+      self
     end
 
     def call(env)
