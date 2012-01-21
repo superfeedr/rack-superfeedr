@@ -9,11 +9,26 @@ This should work with any Rack-compatible framework, as well as fully managed pl
     
 == Using
 
-You first need a subscriber account with Superfeedr.
+You first need a {subscriber account}[http://superfeedr.com/subscriber] with Superfeedr.
+
+*Warning* : your web application needs to be accessible for Superfeedr to send notifications. If you want to test it locally, we suggest you use it with a tool like {showoff}[https://showoff.io/] which will make your local port accessible from the outside world.
+
+=== Sinatra
 
 See the {example}[https://github.com/superfeedr/rack-superfeedr/blob/master/examples/sinatra_app.rb]... and {check the docs}[http://rubydoc.info/github/superfeedr/rack-superfeedr/master/Rack/Superfeedr] for more details. 
 
-*Warning* : your web application needs to be accessible for Superfeedr to send notifications. If you want to test it locally, we suggest you use it with a tool like {showoff}[https://showoff.io/] which will make your local port accessible from the outside world.
+=== Rails
+
+Tested with Rails 3.2, but should work with any Rails version that supports Rack.
+
+Install the gem (using bundle), and then in `config/application.rb`, inside the `class Application < Rails::Application` block, just add the following line.
+
+  config.middleware.use Rack::Superfeedr, { :host => DOMAIN, :login => SUPERFEEDR_LOGIN, :password => SUPERFEEDR_PASSWORD} do |superfeedr|
+    Superfeedr = superfeedr
+  end
+
+You can then access the Superfeedr object anywhere in your rails application with `YOUR_APP_::Application::Superfeedr`.
+
 
 == Contributing
  

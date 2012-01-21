@@ -16,7 +16,7 @@ module Rack
     # is concerned by a notification.
     # The optional block will be called to let you confirm the subscription (or not). 
     # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise
-    def subscribe(url, id, &block)
+    def subscribe(url, id = nil, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
         @verifications[feed_id] ||= {}
@@ -42,7 +42,7 @@ module Rack
     # Unsubscribes a url. If you used an id for the susbcription, you need to use _the same_.
     # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
     # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
-    def unsubscribe(url, id, &block)
+    def unsubscribe(url, id = nil, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
         @verifications[feed_id] ||= {}
