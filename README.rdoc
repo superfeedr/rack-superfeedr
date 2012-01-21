@@ -1,6 +1,6 @@
 = rack-superfeedr
 
-A gem that provides a rack middleware to interact with {Superfeedr}[http://superfeedr.com/]'s PubSubHubbub API. It let you *subscribe, unsubscribe and receive incoming feed notifications*.
+A gem that provides a rack middleware to interact with {Superfeedr}[http://superfeedr.com/]'s PubSubHubbub API. It let you *subscribe*, *unsubscribe* and *receive incoming feed notifications*.
 This should work with any Rack-compatible framework, as well as fully managed platforms like {Heroku}[http://www.heroku.com/].
 
 == Installing
