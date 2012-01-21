@@ -21,13 +21,13 @@ See the {example}[https://github.com/superfeedr/rack-superfeedr/blob/master/exam
 
 Tested with Rails 3.2, but should work with any Rails version that supports Rack.
 
-Install the gem (using bundle), and then in `config/application.rb`, inside the `class Application < Rails::Application` block, just add the following line.
+Install the gem (using bundle), and then in <code>config/application.rb</code>, inside the <code>class Application < Rails::Application</code> block, just add the following line.
 
   config.middleware.use Rack::Superfeedr, { :host => DOMAIN, :login => SUPERFEEDR_LOGIN, :password => SUPERFEEDR_PASSWORD} do |superfeedr|
     Superfeedr = superfeedr
   end
 
-You can then access the Superfeedr object anywhere in your rails application with `YOUR_APP_::Application::Superfeedr`.
+You can then access the Superfeedr object anywhere in your rails application with <code>YOUR_APP_::Application::Superfeedr</code>.
 
 
 == Contributing
