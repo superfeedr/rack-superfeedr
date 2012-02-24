@@ -92,7 +92,7 @@ module Rack
 
     def call(env)
       req = Rack::Request.new(env)
-      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['REQUEST_PATH'].match(/\/superfeedr\/feed\/(.*)/)
+      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
         # Verification of intent!
         if @verifications[feed_id[1]] && verification = @verifications[feed_id[1]][req.params['hub.mode']]
           # Check with the user
@@ -105,7 +105,7 @@ module Rack
           # By default, we accept all
           Rack::Response.new(req.params['hub.challenge'], 200).finish
         end
-      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['REQUEST_PATH'].match(/\/superfeedr\/feed\/(.*)/)
+      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
         # Notification
         content = nil
         content_type = env["CONTENT_TYPE"].split(";").first
