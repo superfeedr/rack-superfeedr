@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["julien51"]
-  s.date = %q{2012-01-21}
+  s.date = %q{2012-03-07}
   s.description = %q{A gem that provides a rack middleware to interract with Superfeedr's API. }
   s.email = %q{julien@superfeedr.com}
   s.extra_rdoc_files = [
