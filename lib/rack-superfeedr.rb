@@ -114,7 +114,7 @@ module Rack
           content = JSON.parse(req.body.read)
         elsif content_type == "application/atom+xml"
           # Let's parse the body as ATOM using nokogiri
-          content = Nokogiri.parse(req.body.read)
+          content = Nokogiri.XML(req.body.read)
         end
         # Let's now send that data back to the user.
         if !@callback.call(content, feed_id[1])
