@@ -15,26 +15,29 @@ module Rack
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
     # is concerned by a notification.
     # The optional block will be called to let you confirm the subscription (or not). 
-    # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise
-    def subscribe(url, id = nil, &block)
+    # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise.
+    # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
+    # A useful option is :verbose => true for example.
+    def subscribe(url, id = nil, opts = {}, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['subscribe'] = block
       end
       response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, 
-      :params => {
-        :'hub.mode' => 'subscribe', 
-        :'hub.verify' => @params[:async] ? 'async' : 'sync',
-        :'hub.topic' => url,
-        :'hub.callback' =>  generate_callback(url, feed_id)
+      opts.merge({
+        :params => {
+          :'hub.mode' => 'subscribe', 
+          :'hub.verify' => @params[:async] ? 'async' : 'sync',
+          :'hub.topic' => url,
+          :'hub.callback' =>  generate_callback(url, feed_id)
         },
-      :headers => {
-        :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
+        :headers => {
+          :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         },
-      :username => @params[:login], 
-      :password => @params[:password]
-      )
+        :username => @params[:login], 
+        :password => @params[:password]
+      }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
 
@@ -42,22 +45,25 @@ module Rack
     # Unsubscribes a url. If you used an id for the susbcription, you need to use _the same_.
     # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
     # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
-    def unsubscribe(url, id = nil, &block)
+    # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
+    # A useful option is :verbose => true for example.
+    def unsubscribe(url, id = nil, opts = {}, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['unsubscribe'] = block
       end
       response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, 
-      :params => {
-        :'hub.mode' => 'unsubscribe', 
-        :'hub.verify' => @params[:async] ? 'async' : 'sync',
-        :'hub.topic' => url,
-        :'hub.callback' =>  generate_callback(url, feed_id)
+      opts.merge({
+        :params => {
+          :'hub.mode' => 'unsubscribe', 
+          :'hub.verify' => @params[:async] ? 'async' : 'sync',
+          :'hub.topic' => url,
+          :'hub.callback' =>  generate_callback(url, feed_id)
         },
-      :username => @params[:login], 
-      :password => @params[:password]
-      )
+        :username => @params[:login], 
+        :password => @params[:password]
+      }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
 

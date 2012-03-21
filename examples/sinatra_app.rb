@@ -1,7 +1,7 @@
 require 'sinatra'
 require 'rack-superfeedr'
 
-use Rack::Superfeedr, { :host => "plant-leg.showoff.io", :login => "demo", :password => "demo", :format => "json", :async => false } do |superfeedr|
+use Rack::Superfeedr, { :host => "1pqz.showoff.io", :login => "demo", :password => "demo", :format => "json", :async => false } do |superfeedr|
   set :superfeedr, superfeedr # so that we can use `settings.superfeedr` to access the superfeedr object in our application.
   
   superfeedr.on_notification do |notification|
