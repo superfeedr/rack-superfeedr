@@ -9,7 +9,7 @@ module Rack
   # using the PubSubHubbub API.
   class Superfeedr
     
-    SUPERFEEDR_ENDPOINT = "http://superfeedr.com/hubbub"
+    SUPERFEEDR_ENDPOINT = "https://superfeedr.com/hubbub"
     
     ##
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
