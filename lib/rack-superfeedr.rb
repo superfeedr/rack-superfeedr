@@ -35,8 +35,7 @@ module Rack
         :headers => {
           :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         },
-        :username => @params[:login], 
-        :password => @params[:password]
+        :userpwd => "#{@params[:login]}:#{@params[:password]}"
       }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
@@ -61,8 +60,7 @@ module Rack
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
         },
-        :username => @params[:login], 
-        :password => @params[:password]
+        :userpwd => "#{@params[:login]}:#{@params[:password]}"
       }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
