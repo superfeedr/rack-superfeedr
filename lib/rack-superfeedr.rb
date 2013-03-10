@@ -3,13 +3,23 @@ require 'typhoeus'
 require 'json'
 require 'nokogiri'
 
+
 module Rack
+
+
   ##
   # This is a Rack Middleware that can be used in your rack-compatible web framework (Rails, Sinatra...) to perform subscriptions over at superfeedr
   # using the PubSubHubbub API.
   class Superfeedr
 
     SUPERFEEDR_ENDPOINT = "https://superfeedr.com/hubbub"
+
+    ##
+    # Shows the latest error received by the API.
+    # Useful when a subscription or unsubscription request fails.
+    def error
+      @error
+    end
 
     ##
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
@@ -24,7 +34,7 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['subscribe'] = block
       end
-      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
+      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
       opts.merge({
         :params => {
           :'hub.mode' => 'subscribe',
@@ -37,6 +47,7 @@ module Rack
         },
         :userpwd => "#{@params[:login]}:#{@params[:password]}"
       }))
+      @error = response.body
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
 
@@ -52,7 +63,7 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['unsubscribe'] = block
       end
-      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
+      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
       opts.merge({
         :params => {
           :'hub.mode' => 'unsubscribe',
@@ -62,6 +73,7 @@ module Rack
         },
         :userpwd => "#{@params[:login]}:#{@params[:password]}"
       }))
+      @error = response.body
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
 
