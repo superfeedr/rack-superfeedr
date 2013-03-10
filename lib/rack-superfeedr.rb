@@ -8,13 +8,13 @@ module Rack
   # This is a Rack Middleware that can be used in your rack-compatible web framework (Rails, Sinatra...) to perform subscriptions over at superfeedr
   # using the PubSubHubbub API.
   class Superfeedr
-    
+
     SUPERFEEDR_ENDPOINT = "https://superfeedr.com/hubbub"
-    
+
     ##
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
     # is concerned by a notification.
-    # The optional block will be called to let you confirm the subscription (or not). 
+    # The optional block will be called to let you confirm the subscription (or not).
     # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise.
     # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
     # A useful option is :verbose => true for example.
@@ -24,10 +24,10 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['subscribe'] = block
       end
-      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, 
+      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
       opts.merge({
         :params => {
-          :'hub.mode' => 'subscribe', 
+          :'hub.mode' => 'subscribe',
           :'hub.verify' => @params[:async] ? 'async' : 'sync',
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
@@ -35,7 +35,7 @@ module Rack
         :headers => {
           :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         },
-        :username => @params[:login], 
+        :username => @params[:login],
         :password => @params[:password]
       }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
@@ -53,15 +53,15 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['unsubscribe'] = block
       end
-      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, 
+      response = Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
       opts.merge({
         :params => {
-          :'hub.mode' => 'unsubscribe', 
+          :'hub.mode' => 'unsubscribe',
           :'hub.verify' => @params[:async] ? 'async' : 'sync',
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
         },
-        :username => @params[:login], 
+        :username => @params[:login],
         :password => @params[:password]
       }))
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
@@ -72,7 +72,7 @@ module Rack
     # - the payload itself (ATOM or JSON, based on what you selected in the params)
     # - the id for the feed, if you used any upon subscription
     def on_notification(&block)
-      @callback = block 
+      @callback = block
     end
 
     ##
@@ -114,7 +114,11 @@ module Rack
       elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
         # Notification
         content = nil
-        content_type = env["CONTENT_TYPE"].split(";").first
+        if env["CONTENT_TYPE"]
+          content_type = env["CONTENT_TYPE"].split(";").first
+        else
+          content_type = "application/atom+xml" #default?
+        end
         if content_type == "application/json"
           # Let's parse the body as JSON
           content = JSON.parse(req.body.read)
@@ -130,13 +134,13 @@ module Rack
       else
         @app.call(env)
       end
-    end  
-    
+    end
+
     protected
-    
+
     def generate_callback(url, feed_id)
       URI::HTTP.build({:host => @params[:host], :path => "/superfeedr/feed/#{feed_id}" }).to_s
     end
-    
+
   end
 end

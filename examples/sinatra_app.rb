@@ -1,7 +1,7 @@
 require 'sinatra'
 require 'rack-superfeedr'
 
-use Rack::Superfeedr, { :host => "1pqz.showoff.io", :login => "demo", :password => "demo", :format => "json", :async => false } do |superfeedr|
+use Rack::Superfeedr, { :host => "pstx.showoff.io", :login => "demo", :password => "demo", :format => "json", :async => false } do |superfeedr|
   set :superfeedr, superfeedr # so that we can use `settings.superfeedr` to access the superfeedr object in our application.
   
   superfeedr.on_notification do |notification|
@@ -15,7 +15,7 @@ get '/hi' do
 end
 
 get '/subscribe' do
-  settings.superfeedr.subscribe("http://push-pub.appspot.com/feed") 
+  settings.superfeedr.subscribe("http://push-pub.appspot.com/feed")
 end
 
 get '/unsubscribe' do
