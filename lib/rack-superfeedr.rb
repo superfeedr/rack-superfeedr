@@ -106,6 +106,17 @@ module Rack
       self
     end
 
+    def reset(params = {})
+      raise ArgumentError, 'Missing :host in params' unless params[:host]
+      raise ArgumentError, 'Missing :login in params' unless params[:login]
+      raise ArgumentError, 'Missing :password in params' unless params[:password]
+      @params = params
+    end
+
+    def params
+      @params
+    end
+
     def call(env)
       req = Rack::Request.new(env)
       if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
