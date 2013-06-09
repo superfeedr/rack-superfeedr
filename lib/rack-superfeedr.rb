@@ -34,7 +34,9 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['subscribe'] = block
       end
-      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
+      endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
+      opts.delete(:hub)
+      response = ::Typhoeus::Request.post(endpoint,
       opts.merge({
         :params => {
           :'hub.mode' => 'subscribe',
@@ -44,9 +46,13 @@ module Rack
         },
         :headers => {
           :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
-        },
-        :userpwd => "#{@params[:login]}:#{@params[:password]}"
+        }
       }))
+
+      if endpoint == SUPERFEEDR_ENDPOINT
+        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
+      end
+
       @error = response.body
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
