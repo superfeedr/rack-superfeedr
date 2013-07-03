@@ -141,6 +141,8 @@ module Rack
       elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
         # Notification
         content = nil
+        # Body is a stream, not a string, so capture it once and save it
+        body = req.body.read
         if env["CONTENT_TYPE"]
           content_type = env["CONTENT_TYPE"].split(";").first
         else
@@ -148,13 +150,14 @@ module Rack
         end
         if content_type == "application/json"
           # Let's parse the body as JSON
-          content = JSON.parse(req.body.read)
+          content = JSON.parse(body)
         elsif content_type == "application/atom+xml"
           # Let's parse the body as ATOM using nokogiri
-          content = Nokogiri.XML(req.body.read)
+          content = Nokogiri.XML(body)
         end
         # Let's now send that data back to the user.
-        if !@callback.call(content, feed_id[1])
+        info = Hashie::Mash.new(req: req, body: body)
+        if !@callback.call(content, feed_id[1], info)
           # We need to unsubscribe the user
         end
         Rack::Response.new("Thanks!", 200).finish
