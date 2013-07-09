@@ -36,6 +36,11 @@ module Rack
       end
       endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
       opts.delete(:hub)
+
+      if endpoint == SUPERFEEDR_ENDPOINT
+        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
+      end
+
       response = ::Typhoeus::Request.post(endpoint,
       opts.merge({
         :params => {
@@ -48,10 +53,6 @@ module Rack
           :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         }
       }))
-
-      if endpoint == SUPERFEEDR_ENDPOINT
-        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
-      end
 
       @error = response.body
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
@@ -169,8 +170,10 @@ module Rack
     protected
 
     def generate_callback(url, feed_id)
-      URI::HTTP.build({:host => @params[:host], :path => "/superfeedr/feed/#{feed_id}" }).to_s
+      scheme = params[:scheme] || 'http'
+      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "/superfeedr/feed/#{feed_id}" }).to_s
     end
 
   end
+
 end
