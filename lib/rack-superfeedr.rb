@@ -109,6 +109,7 @@ module Rack
       @verifications = {}
       @params = params
       @app = app
+      @base_path = params[:base_path] || '/superfeedr/feed/'
       block.call(self)
       self
     end
@@ -126,7 +127,7 @@ module Rack
 
     def call(env)
       req = Rack::Request.new(env)
-      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
+      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/#{@base_path}(.*)/)
         # Verification of intent!
         if @verifications[feed_id[1]] && verification = @verifications[feed_id[1]][req.params['hub.mode']]
           # Check with the user
@@ -139,7 +140,7 @@ module Rack
           # By default, we accept all
           Rack::Response.new(req.params['hub.challenge'], 200).finish
         end
-      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/\/superfeedr\/feed\/(.*)/)
+      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/#{@base_path}(.*)/)
         # Notification
         content = nil
         # Body is a stream, not a string, so capture it once and save it
@@ -171,7 +172,7 @@ module Rack
 
     def generate_callback(url, feed_id)
       scheme = params[:scheme] || 'http'
-      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "/superfeedr/feed/#{feed_id}" }).to_s
+      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}" }).to_s
     end
 
   end
