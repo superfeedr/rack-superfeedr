@@ -108,6 +108,7 @@ module Rack
       }
       @verifications = {}
       @params = params
+      @params[:port] = 80 unless params[:port]
       @app = app
       @base_path = params[:base_path] || '/superfeedr/feed/'
       block.call(self)
@@ -172,7 +173,7 @@ module Rack
 
     def generate_callback(url, feed_id)
       scheme = params[:scheme] || 'http'
-      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}" }).to_s
+      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
     end
 
   end
