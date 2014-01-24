@@ -12,7 +12,7 @@ module Rack
   # using the PubSubHubbub API.
   class Superfeedr
 
-    SUPERFEEDR_ENDPOINT = "https://superfeedr.com/hubbub"
+    SUPERFEEDR_ENDPOINT = "https://push.superfeedr.com"
 
     ##
     # Shows the latest error received by the API.
