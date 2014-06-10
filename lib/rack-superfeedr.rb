@@ -63,7 +63,7 @@ module Rack
         opts[:params][:retrieve] = true
       end
 
-      opts[:params][:'hub.verify'] = @params[:async] ? 'async' : 'sync',
+      opts[:params][:'hub.verify'] = @params[:async] ? 'async' : 'sync'
 
       response = ::Typhoeus::Request.post(endpoint, opts)
 
@@ -72,21 +72,24 @@ module Rack
         @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
       else
 
-        if  @params[:format] != "json"
-          content = Nokogiri.XML(response.body)
+        if response.code == 200
+
+          if  @params[:format] != "json"
+            content = Nokogiri.XML(response.body)
+          else
+            content = JSON.parse(response.body)
+          end
+          # Let's now send that data back to the user.
+          if defined? Hashie::Mash
+            info = Hashie::Mash.new(req: req, body: body)
+          end
+          if !@callback.call(content, feed_id, info)
+            # We need to unsubscribe the user
+          end
+          true
         else
-          content = JSON.parse(response.body)
-
+          false
         end
-        # Let's now send that data back to the user.
-        if defined? Hashie::Mash
-          info = Hashie::Mash.new(req: req, body: body)
-        end
-        if !@callback.call(content, feed_id, info)
-          # We need to unsubscribe the user
-        end
-
-        true
       end
     end
 
