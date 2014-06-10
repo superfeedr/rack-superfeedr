@@ -28,6 +28,8 @@ module Rack
     # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise.
     # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
     # A useful option is :verbose => true for example.
+    # If you supply a retrieve option, the content of the feed will be retrieved from Superfeedr as well and your on_notification callback will 
+    # will be called with the content of the feed.
     def subscribe(url, id = nil, opts = {}, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
@@ -37,25 +39,55 @@ module Rack
       endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
       opts.delete(:hub)
 
+      retrieve = opts[:retrieve] || false
+      opts.delete(:retrieve)
+
+
       if endpoint == SUPERFEEDR_ENDPOINT
         opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
       end
 
-      response = ::Typhoeus::Request.post(endpoint,
-      opts.merge({
+
+      opts = opts.merge({
         :params => {
           :'hub.mode' => 'subscribe',
-          :'hub.verify' => @params[:async] ? 'async' : 'sync',
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
         },
         :headers => {
           :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         }
-      }))
+      })
+
+      if retrieve
+        opts[:params][:retrieve] = true
+      end
+
+      opts[:params][:'hub.verify'] = @params[:async] ? 'async' : 'sync',
+
+      response = ::Typhoeus::Request.post(endpoint, opts)
 
       @error = response.body
-      @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
+      if !retrieve
+        @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
+      else
+
+        if  @params[:format] != "json"
+          content = Nokogiri.XML(response.body)
+        else
+          content = JSON.parse(response.body)
+
+        end
+        # Let's now send that data back to the user.
+        if defined? Hashie::Mash
+          info = Hashie::Mash.new(req: req, body: body)
+        end
+        if !@callback.call(content, feed_id, info)
+          # We need to unsubscribe the user
+        end
+
+        true
+      end
     end
 
     ##
@@ -159,7 +191,9 @@ module Rack
           content = Nokogiri.XML(body)
         end
         # Let's now send that data back to the user.
-        info = Hashie::Mash.new(req: req, body: body)
+        if defined? Hashie::Mash
+          info = Hashie::Mash.new(req: req, body: body)
+        end
         if !@callback.call(content, feed_id[1], info)
           # We need to unsubscribe the user
         end

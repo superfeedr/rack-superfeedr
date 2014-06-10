@@ -79,7 +79,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (>= 1.0.0)
   jeweler (>= 1.6.4)
-  nokogiri
+  nokogiri (>= 1.6.1)
   rack
   shoulda
-  typhoeus
+  typhoeus (>= 0.6.7)
