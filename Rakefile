@@ -17,9 +17,6 @@ Jeweler::Tasks.new do |gem|
   gem.name = "rack-superfeedr"
   gem.homepage = "http://rubygems.org/gems/rack-superfeedr"
   gem.license = "MIT"
-  gem.add_dependency "rack"
-  gem.add_dependency "nokogiri"
-  gem.add_dependency "typhoeus"
   gem.summary = %Q{A gem that provides a rack middleware to interract with Superfeedr's API. }
   gem.description = %Q{A gem that provides a rack middleware to interract with Superfeedr's API. }
   gem.email = "julien@superfeedr.com"
@@ -33,14 +30,6 @@ Rake::TestTask.new(:test) do |test|
   test.libs << 'lib' << 'test'
   test.pattern = 'test/**/test_*.rb'
   test.verbose = true
-end
-
-require 'rcov/rcovtask'
-Rcov::RcovTask.new do |test|
-  test.libs << 'test'
-  test.pattern = 'test/**/test_*.rb'
-  test.verbose = true
-  test.rcov_opts << '--exclude "gems/*"'
 end
 
 task :default => :test

@@ -41,5 +41,5 @@ You can then access the Superfeedr object anywhere in your rails application wit
 
 == Copyright
 
-Copyright (c) 2012 Superfeedr. See LICENSE.txt for further details.
+Copyright (c) 2014 Superfeedr. See LICENSE.txt for further details.
 

@@ -2,7 +2,7 @@ require 'sinatra'
 require(File.join(File.dirname(__FILE__), '..', 'lib', 'rack-superfeedr.rb'))
 
 
-use Rack::Superfeedr, { :host => "pstx.showoff.io", :login => "demo", :password => "demo", :format => "json", :async => false } do |superfeedr|
+use Rack::Superfeedr, { :host => "pstx.showoff.io", :login => "julien", :password => "f8054b405e68aa2067df25fb21665bab", :format => "json", :async => false } do |superfeedr|
   set :superfeedr, superfeedr # so that we can use `settings.superfeedr` to access the superfeedr object in our application.
 
   superfeedr.on_notification do |notification|
@@ -16,7 +16,7 @@ get '/hi' do
 end
 
 get '/subscribe' do
-  subscription = settings.superfeedr.subscribe("http://push-pub.appspot.com/feed")
+  subscription = settings.superfeedr.subscribe("http://push-pub.appspot.com/feed", 9999, { verbose: true, retrieve: true })
   if !subscription
     settings.superfeedr.error
   else
