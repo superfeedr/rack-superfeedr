@@ -230,7 +230,7 @@ module Rack
     end
 
     def generate_callback(url, feed_id)
-      scheme = params[:scheme] || 'http'
+      scheme = @params[:scheme] || 'http'
       URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
     end
 
