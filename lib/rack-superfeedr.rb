@@ -221,7 +221,6 @@ module Rack
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       request = Net::HTTP::Post.new uri.request_uri
-      byebug
       if opts[:userpwd] =~ /(.*):(.*)/
         request.basic_auth $1, $2
       end
