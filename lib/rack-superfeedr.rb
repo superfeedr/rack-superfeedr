@@ -231,7 +231,9 @@ module Rack
 
     def generate_callback(url, feed_id)
       scheme = @params[:scheme] || 'http'
-      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+      url = URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+      # for some reason, URI::HTTP ignores scheme and always sets it to http, so let's manually change it
+      url.gsub /^.*?:\/\//, "#{scheme}://"
     end
 
   end
