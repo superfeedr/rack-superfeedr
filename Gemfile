@@ -4,8 +4,6 @@ source "http://rubygems.org"
 #   gem "activesupport", ">= 2.3.5"
 gem 'rack'
 gem 'nokogiri', ">=1.6.1"
-gem 'typhoeus', ">=0.6.7"
-
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

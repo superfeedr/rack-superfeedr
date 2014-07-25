@@ -1,7 +1,9 @@
 require 'base64'
-require 'typhoeus'
+require 'net/http'
+require 'uri'
 require 'json'
 require 'nokogiri'
+require 'byebug'
 
 
 module Rack
@@ -12,14 +14,14 @@ module Rack
   # using the PubSubHubbub API.
   class Superfeedr
 
-    SUPERFEEDR_ENDPOINT = "https://push.superfeedr.com"
+    SUPERFEEDR_ENDPOINT = "https://push.superfeedr.com/"
 
     ##
-    # Shows the latest error received by the API.
+    # Shows the latest response and error received by the API.
     # Useful when a subscription or unsubscription request fails.
-    def error
-      @error
-    end
+    # "error" is kept for convenience and legacy compatibility even though
+    # it could be obtained via response.body
+    attr_reader :error, :response
 
     ##
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
@@ -47,12 +49,12 @@ module Rack
 
       opts = opts.merge({
         :params => {
-          :'hub.mode' => 'subscribe',
-          :'hub.topic' => url,
-          :'hub.callback' =>  generate_callback(url, feed_id)
+          'hub.mode' => 'subscribe',
+          'hub.topic' => url,
+          'hub.callback' =>  generate_callback(url, feed_id)
         },
         :headers => {
-          :Accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
+          :accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
         }
       })
 
@@ -69,15 +71,13 @@ module Rack
         opts[:params][:'hub.verify'] = 'async'
       end
 
-      if @params[:sync]
-        opts[:params][:'hub.verify'] = 'sync'
-      end
+      response = http_post(endpoint, opts)
 
-      response = ::Typhoeus::Request.post(endpoint, opts)
+      #@error = response.body
 
-      @error = response.body
+      # TODO Log error (response.body)
       if !retrieve
-        @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
+        @params[:async] && response.code == '202' || response.code == '204' # We return true to indicate the status.
       else
 
         if response.code == 200
@@ -97,6 +97,7 @@ module Rack
           end
           true
         else
+          puts "Error #{response.code}. #{@error}"
           false
         end
       end
@@ -114,35 +115,17 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['unsubscribe'] = block
       end
-
+      @response = http_post(SUPERFEEDR_ENDPOINT,
       opts.merge({
         :params => {
           :'hub.mode' => 'unsubscribe',
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
-        }
-      })
-      
-      endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
-      opts.delete(:hub)
-
-      if endpoint == SUPERFEEDR_ENDPOINT
-        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
-        opts[:params][:authorization] = Base64.encode64( opts[:userpwd] ).chomp
-      end
-
-      if @params[:async]
-        opts[:params][:'hub.verify'] = 'async'
-      end
-
-      if @params[:sync]
-        opts[:params][:'hub.verify'] = 'sync'
-      end
-
-      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, opts)
-
-      @error = response.body
-      @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
+        },
+        :userpwd => "#{@params[:login]}:#{@params[:password]}"
+      }))
+      @error = @response.to_s
+      @params[:async] && @response.code == '202' || @response.code == '204' # We return true to indicate the status.
     end
 
     ##
@@ -239,6 +222,22 @@ module Rack
     end
 
     protected
+
+    # http://stackoverflow.com/a/10011910/18706
+    def http_post(url, opts)
+      #url = url.gsub /^(https?:\/\/)/, "\\1#{opts[:userpwd]}@"
+      uri = URI.parse URI.encode(url)
+      uri.path=='/' if uri.path.empty?
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      request = Net::HTTP::Post.new uri.request_uri
+      if opts[:userpwd] =~ /(.*):(.*)/
+        request.basic_auth $1, $2
+      end
+      request.set_form_data (opts[:params]||{})
+      (opts[:headers]||{}).each_pair { |key, val| request[key.to_s.downcase] = val }
+      http.request(request)
+    end
 
     def generate_callback(url, feed_id)
       if @params[:scheme] == "https"
