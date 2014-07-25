@@ -24,29 +24,26 @@ module Rack
     ##
     # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
     # is concerned by a notification.
-    # The optional block will be called to let you confirm the subscription (or not).
-    # It returns true if the subscription was successful (or will be confirmed if you used async => true in the options), false otherwise.
+    # It returns true if the subscription was successful, false otherwise.
+
     # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
-    # A useful option is :verbose => true for example.
-    # If you supply a retrieve option, the content of the feed will be retrieved from Superfeedr as well and your on_notification callback will 
-    # will be called with the content of the feed.
+    # Otther options include 
+    # * :verbose => true 
+    # * :retrieve => true : the content of the feed will be retrieved from Superfeedr as well and your on_notification callback will be called with the content of the feed.
+    
+    #  The optional block will be called to let you confirm the subscription (or not). (make sure you initialize with async:true or sync:true)
     def subscribe(url, id = nil, opts = {}, &block)
       feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
       if block
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['subscribe'] = block
       end
+
       endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
       opts.delete(:hub)
 
       retrieve = opts[:retrieve] || false
       opts.delete(:retrieve)
-
-
-      if endpoint == SUPERFEEDR_ENDPOINT
-        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
-      end
-
 
       opts = opts.merge({
         :params => {
@@ -59,11 +56,22 @@ module Rack
         }
       })
 
+      if endpoint == SUPERFEEDR_ENDPOINT
+        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
+        opts[:params][:authorization] = Base64.encode64( opts[:userpwd] ).chomp
+      end
+
       if retrieve
         opts[:params][:retrieve] = true
       end
 
-      opts[:params][:'hub.verify'] = @params[:async] ? 'async' : 'sync'
+      if @params[:async]
+        opts[:params][:'hub.verify'] = 'async'
+      end
+
+      if @params[:sync]
+        opts[:params][:'hub.verify'] = 'sync'
+      end
 
       response = ::Typhoeus::Request.post(endpoint, opts)
 
@@ -73,18 +81,19 @@ module Rack
       else
 
         if response.code == 200
-
-          if  @params[:format] != "json"
+          if @params[:format] != "json"
             content = Nokogiri.XML(response.body)
           else
             content = JSON.parse(response.body)
           end
           # Let's now send that data back to the user.
           if defined? Hashie::Mash
-            info = Hashie::Mash.new(req: req, body: body)
+            info = Hashie::Mash.new(res: response, body: response.body)
+          else 
+            info = {res: response, body: response.body}
           end
           if !@callback.call(content, feed_id, info)
-            # We need to unsubscribe the user
+            # We need to unsubscribe the user. Or do we?
           end
           true
         else
@@ -105,16 +114,33 @@ module Rack
         @verifications[feed_id] ||= {}
         @verifications[feed_id]['unsubscribe'] = block
       end
-      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT,
+
       opts.merge({
         :params => {
           :'hub.mode' => 'unsubscribe',
-          :'hub.verify' => @params[:async] ? 'async' : 'sync',
           :'hub.topic' => url,
           :'hub.callback' =>  generate_callback(url, feed_id)
-        },
-        :userpwd => "#{@params[:login]}:#{@params[:password]}"
-      }))
+        }
+      })
+      
+      endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
+      opts.delete(:hub)
+
+      if endpoint == SUPERFEEDR_ENDPOINT
+        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
+        opts[:params][:authorization] = Base64.encode64( opts[:userpwd] ).chomp
+      end
+
+      if @params[:async]
+        opts[:params][:'hub.verify'] = 'async'
+      end
+
+      if @params[:sync]
+        opts[:params][:'hub.verify'] = 'sync'
+      end
+
+      response = ::Typhoeus::Request.post(SUPERFEEDR_ENDPOINT, opts)
+
       @error = response.body
       @params[:async] && response.code == 202 || response.code == 204 # We return true to indicate the status.
     end
@@ -130,10 +156,12 @@ module Rack
     ##
     # When using this Rack, you need to supply the following params (2nd argument):
     # - :host (the host for your web app. Used to build the callback urls.)
+    # - :scheme (used to build the callback urls, defaults to http)
+    # - :base_path (used to build callback urls, defaults to '/superfeedr/feed/'). Do not change once you started subscribing!
     # - :login
     # - :password
     # - :format (atom|json, atom being default)
-    # - :async (true|false), false is default. You need to set that to false if you're using platforms like Heroku that may disallow concurrency.
+    # - :async (true|false), none is default. Some hubs (but not Superfeedr) require that you use a sync:true or async:true option to perform verification of intent. You need to set that to false if you're using platforms like Heroku that may disallow concurrency.
     def initialize(app, params = {}, &block)
       raise ArgumentError, 'Missing :host in params' unless params[:host]
       raise ArgumentError, 'Missing :login in params' unless params[:login]
@@ -142,10 +170,14 @@ module Rack
         # Bh default, do nothing
       }
       @verifications = {}
+
+      @app = app
+
       @params = params
       @params[:port] = 80 unless params[:port]
-      @app = app
+      @params[:scheme] = 'http' unless params[:scheme]
       @base_path = params[:base_path] || '/superfeedr/feed/'
+
       block.call(self)
       self
     end
@@ -209,8 +241,11 @@ module Rack
     protected
 
     def generate_callback(url, feed_id)
-      scheme = params[:scheme] || 'http'
-      URI::HTTP.build({:scheme => scheme, :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+      if @params[:scheme] == "https"
+        URI::HTTPS.build({:scheme => @params[:scheme], :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+      else
+        URI::HTTP.build({:scheme => @params[:scheme], :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+      end
     end
 
   end

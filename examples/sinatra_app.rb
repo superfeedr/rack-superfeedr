@@ -2,11 +2,16 @@ require 'sinatra'
 require(File.join(File.dirname(__FILE__), '..', 'lib', 'rack-superfeedr.rb'))
 
 
-use Rack::Superfeedr, { :host => "pstx.showoff.io", :login => "julien", :password => "f8054b405e68aa2067df25fb21665bab", :format => "json", :async => false } do |superfeedr|
+use Rack::Superfeedr, {:scheme => 'http', :host => "9cfc62cb6bf.a.passageway.io", :login => "demo", :password => "8ac38a53cc32f71a6445e880f76fc865", :format => 'json'} do |superfeedr|
   set :superfeedr, superfeedr # so that we can use `settings.superfeedr` to access the superfeedr object in our application.
 
-  superfeedr.on_notification do |notification|
+  superfeedr.on_notification do |notification, feed_id, info|
     puts notification.to_s # You probably want to persist that data in some kind of data store...
+    puts "------"
+    puts feed_id
+    puts "------"
+    puts info[:body] # Mostly you're interested in info[:body] which includes a text version of the notification.
+    puts "------"
   end
 
 end
