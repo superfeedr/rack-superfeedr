@@ -1,10 +1,6 @@
 require 'base64'
 require 'net/http'
 require 'uri'
-require 'json'
-require 'nokogiri'
-require 'byebug'
-
 
 module Rack
 
@@ -14,93 +10,79 @@ module Rack
   # using the PubSubHubbub API.
   class Superfeedr
 
-    SUPERFEEDR_ENDPOINT = "https://push.superfeedr.com/"
+    @@superfeedr_endpoint = "https://push.superfeedr.com/"
+    @@port = 80
+    @@host = 'my-app.com'
+    @@base_path = '/superfeedr/feed/'
+    @@scheme = 'http'
+    @@login = nil
+    @@password = nil
+
+    def self.superfeedr_endpoint= _superfeedr_endpoint
+      @@superfeedr_endpoint = _superfeedr_endpoint
+    end
+
+    def self.port= _port
+      @@port = _port
+    end
+
+    def self.host= _host
+      @@host = _host
+    end
+
+    def self.base_path= _base_path
+      @@base_path = _base_path
+    end
+
+    def self.scheme= _scheme
+      @@scheme = _scheme
+    end
+
+    def self.login= _login
+      @@login = _login
+    end
+
+    def self.password= _password
+      @@password = _password
+    end
 
     ##
-    # Shows the latest response and error received by the API.
-    # Useful when a subscription or unsubscription request fails.
-    # "error" is kept for convenience and legacy compatibility even though
-    # it could be obtained via response.body
-    attr_reader :error, :response
-
-    ##
-    # Subscribe you to a url. id is optional, but recommanded has a unique identifier for this url. It will be used to help you identify which feed
+    # Subscribe you to a url. id is optional but strongly recommanded has a unique identifier for this url. It will be used to help you identify which feed
     # is concerned by a notification.
-    # It returns true if the subscription was successful, false otherwise.
+    # A 3rd options argument can be supplied with
+    # - retrive => true if you want to retrieve the previous items in the feed
+    # - format => 'json' or 'atom' to specify the format of the notifications, defaults to atom
+    # - secret => a secret string used to compyte HMAC signatures so you can check that the data is coming from Superfeedr
+    # - sync => true (defaults to false) if you want to perfrom a verification of intent syncrhonously
+    # - async => true  (defaults to false) if you want to perfrom a verification of intent asyncrhonously
+    # - hub => if you want to use an explicit hub, defaults to Superfeedr's http://push.superfeedr.com
+    # It yields 3 arguments to a block:
+    # - body of the response (useful if you used the retrieve option)
+    # - success flag 
+    # - response (useful to debug failed requests mostly)
+    def self.subscribe(url, id = nil, opts = {}, &blk)
+      endpoint = opts[:hub] || @@superfeedr_endpoint
+      request = prep_request(url, id, endpoint, opts)
 
-    # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
-    # Otther options include 
-    # * :verbose => true 
-    # * :retrieve => true : the content of the feed will be retrieved from Superfeedr as well and your on_notification callback will be called with the content of the feed.
-    
-    #  The optional block will be called to let you confirm the subscription (or not). (make sure you initialize with async:true or sync:true)
-    def subscribe(url, id = nil, opts = {}, &block)
-      feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
-      if block
-        @verifications[feed_id] ||= {}
-        @verifications[feed_id]['subscribe'] = block
+      if opts[:retrieve]
+        request['retrieve'] = true
+      end
+      
+      if opts[:format] == "json"
+        request['format'] = "json"
       end
 
-      endpoint = opts[:hub] || SUPERFEEDR_ENDPOINT
-      opts.delete(:hub)
-
-      retrieve = opts[:retrieve] || false
-      opts.delete(:retrieve)
-
-      opts = opts.merge({
-        :params => {
-          'hub.mode' => 'subscribe',
-          'hub.topic' => url,
-          'hub.callback' =>  generate_callback(url, feed_id)
-        },
-        :headers => {
-          :accept => @params[:format] == "json" ? "application/json" : "application/atom+xml"
-        }
-      })
-
-      if endpoint == SUPERFEEDR_ENDPOINT
-        opts[:userpwd] = "#{@params[:login]}:#{@params[:password]}"
-        opts[:params][:authorization] = Base64.encode64( opts[:userpwd] ).chomp
-      end
-
-      if retrieve
-        opts[:params][:retrieve] = true
-      end
-
-      if @params[:async]
-        opts[:params][:'hub.verify'] = 'async'
-      end
-
-      response = http_post(endpoint, opts)
-
-      #@error = response.body
-
-      # TODO Log error (response.body)
-      if !retrieve
-        @params[:async] && response.code == '202' || response.code == '204' # We return true to indicate the status.
+      if opts[:secret]
+        request['hub.secret'] = opts[:secret]
       else
-
-        if response.code == 200
-          if @params[:format] != "json"
-            content = Nokogiri.XML(response.body)
-          else
-            content = JSON.parse(response.body)
-          end
-          # Let's now send that data back to the user.
-          if defined? Hashie::Mash
-            info = Hashie::Mash.new(res: response, body: response.body)
-          else 
-            info = {res: response, body: response.body}
-          end
-          if !@callback.call(content, feed_id, info)
-            # We need to unsubscribe the user. Or do we?
-          end
-          true
-        else
-          puts "Error #{response.code}. #{@error}"
-          false
-        end
+        request['hub.secret'] = "WHAT DO WE PICK? A UNIQUE SCRET THE CALLBACK? SO WE CAN USE THAT ON NOTIFS?" 
       end
+      
+      request['hub.mode'] = 'subscribe'
+
+      response = http_post(endpoint, request)
+
+      blk.call(response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204 || opts[:retrieve] && Integer(response.code) == 200, response) if blk
     end
 
     ##
@@ -108,113 +90,94 @@ module Rack
     # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
     # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
     # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
-    # A useful option is :verbose => true for example.
-    def unsubscribe(url, id = nil, opts = {}, &block)
-      feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
-      if block
-        @verifications[feed_id] ||= {}
-        @verifications[feed_id]['unsubscribe'] = block
-      end
-      @response = http_post(SUPERFEEDR_ENDPOINT,
-      opts.merge({
-        :params => {
-          :'hub.mode' => 'unsubscribe',
-          :'hub.topic' => url,
-          :'hub.callback' =>  generate_callback(url, feed_id)
-        },
-        :userpwd => "#{@params[:login]}:#{@params[:password]}"
-      }))
-      @error = @response.to_s
-      @params[:async] && @response.code == '202' || @response.code == '204' # We return true to indicate the status.
+    
+    ##
+    # Subscribe you to a url. id needs to match the id you used to subscribe. 
+    # A 3rd options argument can be supplied with
+    # - sync => true (defaults to false) if you want to perfrom a verification of intent syncrhonously
+    # - async => true  (defaults to false) if you want to perfrom a verification of intent asyncrhonously
+    # - hub => if you want to use an explicit hub, defaults to Superfeedr's http://push.superfeedr.com
+    # It yields 3 arguments to a block:
+    # - body of the response (useful to debug failed notifications)
+    # - success flag 
+    # - response (useful to debug failed requests mostly)
+    def self.unsubscribe(url, id = nil, opts = {}, &blk)
+      endpoint = opts[:hub] || @@superfeedr_endpoint
+      request = prep_request(url, id, endpoint, opts)
+
+      request['hub.mode'] = 'unsubscribe'
+
+      response = http_post(endpoint, request)
+
+      blk.call(response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204, response) if blk
     end
 
     ##
-    # This allows you to define what happens with the notifications. The block passed in argument is called for each notification, with 2 arguments
-    # - the payload itself (ATOM or JSON, based on what you selected in the params)
-    # - the id for the feed, if you used any upon subscription
+    # This allows you to define what happens with the notifications. The block passed in argument is called for each notification, with 4 arguments
+    # - feed_id (used in subscriptions)
+    # - body (Atom or JSON) based on subscription
+    # - url (optional... if the hub supports that, Superfeedr does)
+    # - Rack::Request object. Useful for debugging and checking signatures
     def on_notification(&block)
       @callback = block
     end
 
     ##
-    # When using this Rack, you need to supply the following params (2nd argument):
-    # - :host (the host for your web app. Used to build the callback urls.)
-    # - :scheme (used to build the callback urls, defaults to http)
-    # - :base_path (used to build callback urls, defaults to '/superfeedr/feed/'). Do not change once you started subscribing!
-    # - :login
-    # - :password
-    # - :format (atom|json, atom being default)
-    # - :async (true|false), none is default. Some hubs (but not Superfeedr) require that you use a sync:true or async:true option to perform verification of intent. You need to set that to false if you're using platforms like Heroku that may disallow concurrency.
-    def initialize(app, params = {}, &block)
-      raise ArgumentError, 'Missing :host in params' unless params[:host]
-      raise ArgumentError, 'Missing :login in params' unless params[:login]
-      raise ArgumentError, 'Missing :password in params' unless params[:password]
-      @callback = Proc.new { |notification, feed_id|
-        # Bh default, do nothing
-      }
-      @verifications = {}
+    # This allows you to define what happens with verification of intents
+    # It's a block called with 
+    # - mode: subscribe|unsubscribe
+    # - Feed id (if available/supplied upon subscription)
+    # - Feed url
+    # - request (the Rack::Request object, should probably not be used, except for debugging)
+    # If the block returns true, subscription will be confirmed
+    # If it returns false, it will be denied
+    def on_verification(&block)
+      @verification = block
+    end
 
+    ##
+    # Initializes the Rack Middleware
+    # Make sure you define the following class attribues before that:
+    # Rack::Superfeedr.superfeedr_endpoint => https://push.superfeedr.com, defaults (do not change!)
+    # Rack::Superfeedr.host => Host for your application, used to build callback urls
+    # Rack::Superfeedr.port =>  Port for your application, used to build callback urls, defaults to
+    # Rack::Superfeedr.base_path => Base path for callback urls. Defauls to  '/superfeedr/feed/'
+    # Rack::Superfeedr.scheme => Scheme to build callback urls, defaults to 'http'
+    # Rack::Superfeedr.login => Superfeedr login
+    # Rack::Superfeedr.password => Superfeedr password
+    def initialize(app, &block)
       @app = app
-
-      @params = params
-      @params[:port] = 80 unless params[:port]
-      @params[:scheme] = 'http' unless params[:scheme]
-      @base_path = params[:base_path] || '/superfeedr/feed/'
-
+      reset
       block.call(self)
       self
     end
 
-    def reset(params = {})
-      raise ArgumentError, 'Missing :host in params' unless params[:host]
-      raise ArgumentError, 'Missing :login in params' unless params[:login]
-      raise ArgumentError, 'Missing :password in params' unless params[:password]
-      @params = params
+    ##
+    # Resets.
+    def reset 
+      @callback = Proc.new { |feed_id, body, url, request|
+        # Nothing to do by default!
+      }
+      @verification = Proc.new { |mode, feed_id, url, request|
+        true # Accept all by default!
+      }
     end
 
-    def params
-      @params
-    end
-
+    ##
+    # Called by Rack!
     def call(env)
       req = Rack::Request.new(env)
-      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/#{@base_path}(.*)/)
-        # Verification of intent!
-        if @verifications[feed_id[1]] && verification = @verifications[feed_id[1]][req.params['hub.mode']]
-          # Check with the user
-          if verification.call(req.params['hub.topic'], feed_id[1])
-            Rack::Response.new(req.params['hub.challenge'], 200).finish
-          else
-            Rack::Response.new("not valid", 404).finish
-          end
-        else
-          # By default, we accept all
+      if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/#{@@base_path}(.*)/)
+        puts "----"
+        puts req.params['hub.mode'], feed_id[1], req.params['hub.topic']
+        puts "----"
+        if @verification.call(req.params['hub.mode'], feed_id[1], req.params['hub.topic'], req)
           Rack::Response.new(req.params['hub.challenge'], 200).finish
-        end
-      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/#{@base_path}(.*)/)
-        # Notification
-        content = nil
-        # Body is a stream, not a string, so capture it once and save it
-        body = req.body.read
-        if env["CONTENT_TYPE"]
-          content_type = env["CONTENT_TYPE"].split(";").first
         else
-          content_type = "application/atom+xml" #default?
+          Rack::Response.new("not valid", 404).finish
         end
-        if content_type == "application/json"
-          # Let's parse the body as JSON
-          content = JSON.parse(body)
-        elsif content_type == "application/atom+xml"
-          # Let's parse the body as ATOM using nokogiri
-          content = Nokogiri.XML(body)
-        end
-        # Let's now send that data back to the user.
-        if defined? Hashie::Mash
-          info = Hashie::Mash.new(req: req, body: body)
-        end
-        if !@callback.call(content, feed_id[1], info)
-          # We need to unsubscribe the user
-        end
+      elsif env['REQUEST_METHOD'] == 'POST' && feed_id = env['PATH_INFO'].match(/#{@@base_path}(.*)/)
+        @callback.call(feed_id[1], req.body.read, req.env['HTTP_X_PUBSUBHUBBUB_TOPIC'], req)
         Rack::Response.new("Thanks!", 200).finish
       else
         @app.call(env)
@@ -223,30 +186,45 @@ module Rack
 
     protected
 
-    # http://stackoverflow.com/a/10011910/18706
-    def http_post(url, opts)
-      #url = url.gsub /^(https?:\/\/)/, "\\1#{opts[:userpwd]}@"
+    def self.prep_request(url, id, endpoint, opts)
+      feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
+
+      request = {
+        'hub.topic' => url,
+        'hub.callback' =>  generate_callback(url, feed_id)
+      }
+
+      if endpoint == @@superfeedr_endpoint && @@login && @@password
+        request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
+      end
+
+      if opts[:async]
+        request['hub.verify'] = 'async'
+      end
+
+      if opts[:sync]
+        request['hub.verify'] = 'sync'
+      end
+
+      request
+    end
+
+    def self.http_post(url, opts)
       uri = URI.parse URI.encode(url)
       uri.path=='/' if uri.path.empty?
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       request = Net::HTTP::Post.new uri.request_uri
-      if opts[:userpwd] =~ /(.*):(.*)/
-        request.basic_auth $1, $2
-      end
-      request.set_form_data (opts[:params]||{})
-      (opts[:headers]||{}).each_pair { |key, val| request[key.to_s.downcase] = val }
+      request.set_form_data (opts||{})
       http.request(request)
     end
 
-    def generate_callback(url, feed_id)
-      if @params[:scheme] == "https"
-        URI::HTTPS.build({:scheme => @params[:scheme], :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+    def self.generate_callback(url, feed_id)
+      if @@scheme == "https"
+        URI::HTTPS.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
       else
-        URI::HTTP.build({:scheme => @params[:scheme], :host => @params[:host], :path => "#{@base_path}#{feed_id}", :port => @params[:port] }).to_s
+        URI::HTTP.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
       end
     end
-
   end
-
 end
