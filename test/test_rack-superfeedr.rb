@@ -2,7 +2,7 @@ require 'rack'
 require_relative 'helper.rb'
 
 # To run tests locally, we're using runscope's passageway which proxies requests inside the firewall. (make sure you bind to port 4567)
-HOST = '37cb3f2fe113.a.passageway.io'
+HOST = '5f83728c358.b.passageway.io'
 PORT = 80
 # Also, we need superfeedr credentials.
 LOGIN = 'demo'
@@ -11,13 +11,12 @@ PASSWORD = '8ac38a53cc32f71a6445e880f76fc865'
 
 class MyRackApp
 	def call(env)
-		puts env.inspect
 		[ 200, {'Content-Type' => 'text/plain'}, ['hello world'] ]
 	end
 end
 
 def notified(url, feed_id, details)
-	puts url, feed_id, details
+	# puts url, feed_id, details
 end
 
 # Run an app in a thread
@@ -39,7 +38,7 @@ Thread.new do
 	end	
 
 
-	end, :Port => 4567) 
+	end, :Port => 4567, Logger: WEBrick::Log.new("/dev/null"), AccessLog: [],) 
 end
 sleep 3
 
@@ -61,7 +60,6 @@ class TestRackSuperfeedr < Test::Unit::TestCase
 
 		should "support sync mode and call the verification callback before yielding true" do 
 			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'accept-subscribe', {:sync => true}) do |body, success, response|
-				puts body
 				success || flunk("Fail")
 			end
 		end
