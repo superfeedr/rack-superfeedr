@@ -1,3 +1,4 @@
+require 'json'
 require 'rack'
 require_relative 'helper.rb'
 
@@ -117,6 +118,30 @@ class TestRackSuperfeedr < Test::Unit::TestCase
 			Rack::Superfeedr.unsubscribe('http://push-pub.appspot.com/feed', 'accept-unsubscribe', {:async => true}) do |body, success, response|
 				success || flunk("Fail")
 			end
+		end
+	end
+
+	context "Retrieving" do
+		should 'yield content from Superfeedr in Atom when asking for no specific format' do
+			Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed') do |body, success, response|
+				success || flunk("Fail")
+			end			
+		end
+
+		should 'yield content from Superfeedr in JSON when asking for JSON' do
+			Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed', {:format => 'json'}) do |body, success, response|
+				success || flunk("Fail")
+				hash = JSON.parse body
+				hash['status'] || flunk("Not JSON")
+			end			
+		end
+
+		should 'yield content from Superfeedr in JSON when asking for JSON and only yield the right number of items' do
+			Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed', {:format => 'json', :count => 3}) do |body, success, response|
+				success || flunk("Fail")
+				hash = JSON.parse body
+				hash['items'].length == 3 || flunk("Not the right number of items")
+			end			
 		end
 	end
 

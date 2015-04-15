@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["julien51"]
-  s.date = "2014-06-10"
+  s.date = "2014-07-29"
   s.description = "A gem that provides a rack middleware to interract with Superfeedr's API. "
   s.email = "julien@superfeedr.com"
   s.extra_rdoc_files = [
@@ -33,7 +33,7 @@ Gem::Specification.new do |s|
   s.homepage = "http://rubygems.org/gems/rack-superfeedr"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
-  s.rubygems_version = "1.8.25"
+  s.rubygems_version = "1.8.23.2"
   s.summary = "A gem that provides a rack middleware to interract with Superfeedr's API."
 
   if s.respond_to? :specification_version then
@@ -42,25 +42,28 @@ Gem::Specification.new do |s|
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
       s.add_runtime_dependency(%q<rack>, [">= 0"])
       s.add_runtime_dependency(%q<nokogiri>, [">= 1.6.1"])
-      s.add_runtime_dependency(%q<typhoeus>, [">= 0.6.7"])
       s.add_development_dependency(%q<shoulda>, [">= 0"])
+      s.add_development_dependency(%q<turn>, [">= 0"])
       s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_development_dependency(%q<jeweler>, [">= 1.6.4"])
+      s.add_development_dependency(%q<thin>, [">= 0"])
     else
       s.add_dependency(%q<rack>, [">= 0"])
       s.add_dependency(%q<nokogiri>, [">= 1.6.1"])
-      s.add_dependency(%q<typhoeus>, [">= 0.6.7"])
       s.add_dependency(%q<shoulda>, [">= 0"])
+      s.add_dependency(%q<turn>, [">= 0"])
       s.add_dependency(%q<bundler>, [">= 1.0.0"])
       s.add_dependency(%q<jeweler>, [">= 1.6.4"])
+      s.add_dependency(%q<thin>, [">= 0"])
     end
   else
     s.add_dependency(%q<rack>, [">= 0"])
     s.add_dependency(%q<nokogiri>, [">= 1.6.1"])
-    s.add_dependency(%q<typhoeus>, [">= 0.6.7"])
     s.add_dependency(%q<shoulda>, [">= 0"])
+    s.add_dependency(%q<turn>, [">= 0"])
     s.add_dependency(%q<bundler>, [">= 1.0.0"])
     s.add_dependency(%q<jeweler>, [">= 1.6.4"])
+    s.add_dependency(%q<thin>, [">= 0"])
   end
 end
 

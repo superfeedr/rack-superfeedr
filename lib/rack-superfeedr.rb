@@ -50,7 +50,7 @@ module Rack
     # Subscribe you to a url. id is optional but strongly recommanded has a unique identifier for this url. It will be used to help you identify which feed
     # is concerned by a notification.
     # A 3rd options argument can be supplied with
-    # - retrive => true if you want to retrieve the previous items in the feed
+    # - retrieve => true if you want to retrieve the previous items in the feed
     # - format => 'json' or 'atom' to specify the format of the notifications, defaults to atom
     # - secret => a secret string used to compyte HMAC signatures so you can check that the data is coming from Superfeedr
     # - sync => true (defaults to false) if you want to perfrom a verification of intent syncrhonously
@@ -83,6 +83,42 @@ module Rack
       response = http_post(endpoint, request)
 
       blk.call(response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204 || opts[:retrieve] && Integer(response.code) == 200, response) if blk
+    end
+
+    ##
+    # Retrieve the content of a resource at Superfeedr
+    # A 2nd options argument can be supplied with
+    # - format => 'json' or 'atom' to specify the format of the notifications, defaults to atom
+    # - count => Integer (number of items to retrieve)
+    # - before => The id of an entry in the feed. The response will only include entries published before this one.
+    # - after => The id of an entry in the feed. The response will only include entries published after this one.
+    # It yields 3 arguments to a block (if block is supplied. If not, just returns the triplet)
+    # - body of the response (useful if you used the retrieve option)
+    # - success flag 
+    # - response (useful to debug failed requests mostly)
+    def self.retrieve_by_topic_url(url, opts = {}, &blk)
+      endpoint = opts[:hub] || @@superfeedr_endpoint
+      request = prep_request(url, '', endpoint, opts)
+
+      if opts[:format] == "json"
+        request['format'] = "json"
+      end
+
+      if opts[:count]
+        request['count'] = opts[:count]
+      else
+        request['count'] = 10
+      end
+      
+      request['hub.mode'] = 'retrieve'
+
+      response = http_get(endpoint, request)
+
+      if blk
+        blk.call(response.body, Integer(response.code) == 200, response) if blk
+      else
+        [response.body, Integer(response.code) == 200, response]
+      end
     end
 
     ##
@@ -168,9 +204,6 @@ module Rack
     def call(env)
       req = Rack::Request.new(env)
       if env['REQUEST_METHOD'] == 'GET' && feed_id = env['PATH_INFO'].match(/#{@@base_path}(.*)/)
-        puts "----"
-        puts req.params['hub.mode'], feed_id[1], req.params['hub.topic']
-        puts "----"
         if @verification.call(req.params['hub.mode'], feed_id[1], req.params['hub.topic'], req)
           Rack::Response.new(req.params['hub.challenge'], 200).finish
         else
@@ -207,6 +240,16 @@ module Rack
       end
 
       request
+    end
+
+    def self.http_get(url, opts)
+      uri = URI.parse URI.encode(url)
+      uri.query = URI.encode_www_form opts || {}
+      uri.path=='/' if uri.path.empty?
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      request = Net::HTTP::Get.new uri.request_uri
+      http.request(request)
     end
 
     def self.http_post(url, opts)
