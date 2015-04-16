@@ -3,7 +3,7 @@ require 'rack'
 require_relative 'helper.rb'
 
 # To run tests locally, we're using runscope's passageway which proxies requests inside the firewall. (make sure you bind to port 4567)
-HOST = '5f83728c358.b.passageway.io'
+HOST = '39fbb9eba21.b.passageway.io'
 PORT = 80
 # Also, we need superfeedr credentials.
 LOGIN = 'demo'
@@ -22,6 +22,11 @@ end
 
 # Run an app in a thread
 Thread.new do
+	opts = {
+		:Port => 4567, 
+		# Logger: WEBrick::Log.new("/dev/null"), 
+		AccessLog: []
+	}
 	Rack::Handler::WEBrick.run(Rack::Superfeedr.new(MyRackApp.new) do |superfeedr|
 	
 	superfeedr.on_verification do |mode, feed_id, url, request|
@@ -39,7 +44,7 @@ Thread.new do
 	end	
 
 
-	end, :Port => 4567, Logger: WEBrick::Log.new("/dev/null"), AccessLog: [],) 
+	end, opts) 
 end
 sleep 3
 
