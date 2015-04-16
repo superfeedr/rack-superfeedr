@@ -56,36 +56,121 @@ Rack::Superfeedr.password = PASSWORD
 
 class TestRackSuperfeedr < Test::Unit::TestCase
 
-	context "Subscribing" do
+	context "Without Callbacks" do
 
-		should "yield true with a simple subscribe" do 
-			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '12345') do |body, success, response|
+		context "Subscribing" do
+
+			should "yield true with a simple subscribe" do 
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '12345')
 				success || flunk("Fail")
 			end
-		end
 
-		should "support sync mode and call the verification callback before yielding true" do 
-			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'accept-subscribe', {:sync => true}) do |body, success, response|
+			should "support sync mode and call the verification callback before yielding true" do 
+				body, success, response =  Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'accept-subscribe', {:sync => true}) 
 				success || flunk("Fail")
 			end
-		end
 
-		should "support sync mode and call the verification callback before yielding false if verification fails" do 
-			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:sync => true}) do |body, success, response|
+			should "support sync mode and call the verification callback before yielding false if verification fails" do 
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:sync => true})
 				!success || flunk('Fail')
 			end
+
+			should "support async mode and yield true" do 
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:async => true})
+				success || flunk("Fail")
+			end
+
+			should "return the content of Atom subscriptions with retrieve" do 
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '1234', {:retrieve => true})
+				assert_equal "application/atom+xml", response['Content-Type']
+				success || flunk("Fail")
+				assert body 
+			end
+
+			should "return the content of Json subscriptions with retrieve" do 
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '1234', {:format => "json", :retrieve => true})
+				assert_equal "application/json; charset=utf-8", response['Content-Type']
+				success || flunk("Fail")
+				assert body
+			end
 		end
 
-		should "support async mode and yield true" do 
-			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:async => true}) do |body, success, response|
+		context "Unsubscribing" do
+			should 'successfully unsubscribe with 204 when not using sync nor asyc' do
+				body, success, response = Rack::Superfeedr.unsubscribe('http://push-pub.appspot.com/feed', '12345')
+				success || flunk("Fail")
+			end
+
+			should 'successfully unsubscribe with 204 when using sync when verification yields true' do
+				body, success, response = Rack::Superfeedr.unsubscribe('http://push-pub.appspot.com/feed', 'accept-unsubscribe', {:sync => true})
+				success || flunk("Fail")
+			end
+
+			should 'fail to unsubscribe with 204 when using sync when verification yields false'  do
+				body, success, response = Rack::Superfeedr.unsubscribe('http://push-pub.appspot.com/feed', 'refuse-unsubscribe', {:sync => true}) 
+				!success || flunk('Fail')
+			end
+
+			should 'return 202 when using async' do
+				body, success, response = Rack::Superfeedr.unsubscribe('http://push-pub.appspot.com/feed', 'accept-unsubscribe', {:async => true})
 				success || flunk("Fail")
 			end
 		end
 
-		should "return the content of Atom subscriptions with retrieve" do 
-			Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '1234', {:retrieve => true}) do |body, success, response|
-				assert_equal "application/atom+xml", response['Content-Type']
+		context "Retrieving" do
+			should 'yield content from Superfeedr in Atom when asking for no specific format' do
+				body, success, response = Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed')
 				success || flunk("Fail")
+			end			
+
+			should 'yield content from Superfeedr in JSON when asking for JSON' do
+				body, success, response = Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed', {:format => 'json'})
+				success || flunk("Fail")
+				hash = JSON.parse body
+				hash['status'] || flunk("Not JSON")
+			end			
+
+			should 'yield content from Superfeedr in JSON when asking for JSON and only yield the right number of items' do
+				body, success, response = Rack::Superfeedr.retrieve_by_topic_url('http://push-pub.appspot.com/feed', {:format => 'json', :count => 3}) 
+				success || flunk("Fail")
+				hash = JSON.parse body
+				hash['items'].length == 3 || flunk("Not the right number of items")
+			end			
+		end
+	end
+
+	context "With Callbacks" do
+
+		context "Subscribing" do
+
+			should "yield true with a simple subscribe" do 
+				Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '12345') do |body, success, response|
+					success || flunk("Fail")
+				end
+			end
+
+			should "support sync mode and call the verification callback before yielding true" do 
+				Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'accept-subscribe', {:sync => true}) do |body, success, response|
+					success || flunk("Fail")
+				end
+			end
+
+			should "support sync mode and call the verification callback before yielding false if verification fails" do 
+				Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:sync => true}) do |body, success, response|
+					!success || flunk('Fail')
+				end
+			end
+
+			should "support async mode and yield true" do 
+				Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', 'refuse-subscribe', {:async => true}) do |body, success, response|
+					success || flunk("Fail")
+				end
+			end
+
+			should "return the content of Atom subscriptions with retrieve" do 
+				Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '1234', {:retrieve => true}) do |body, success, response|
+					assert_equal "application/atom+xml", response['Content-Type']
+					success || flunk("Fail")
 				assert body # Some XML
 			end
 		end
@@ -149,6 +234,7 @@ class TestRackSuperfeedr < Test::Unit::TestCase
 			end			
 		end
 	end
+end
 
 	context "Notifications" do
 		should 'handle json notifications' 

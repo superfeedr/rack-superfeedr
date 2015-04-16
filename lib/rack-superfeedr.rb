@@ -4,69 +4,69 @@ require 'uri'
 
 module SuperfeedrAPI
 
-    @@superfeedr_endpoint = "https://push.superfeedr.com/"
-    @@port = 80
-    @@host = 'my-app.com'
-    @@base_path = '/superfeedr/feed/'
-    @@scheme = 'http'
-    @@login = nil
-    @@password = nil
+  @@superfeedr_endpoint = "https://push.superfeedr.com/"
+  @@port = 80
+  @@host = 'my-app.com'
+  @@base_path = '/superfeedr/feed/'
+  @@scheme = 'http'
+  @@login = nil
+  @@password = nil
 
-    def superfeedr_endpoint= _superfeedr_endpoint
-      @@superfeedr_endpoint = _superfeedr_endpoint
-    end
+  def superfeedr_endpoint= _superfeedr_endpoint
+    @@superfeedr_endpoint = _superfeedr_endpoint
+  end
 
-    def superfeedr_endpoint
-      @@superfeedr_endpoint
-    end
+  def superfeedr_endpoint
+    @@superfeedr_endpoint
+  end
 
-    def port= _port
-      @@port = _port
-    end
+  def port= _port
+    @@port = _port
+  end
 
-    def port
-      @@port
-    end
+  def port
+    @@port
+  end
 
-    def host= _host
-      @@host = _host
-    end
+  def host= _host
+    @@host = _host
+  end
 
-    def host
-      @@host
-    end
-    
-    def base_path= _base_path
-      @@base_path = _base_path
-    end
+  def host
+    @@host
+  end
 
-    def base_path
-      @@base_path
-    end
+  def base_path= _base_path
+    @@base_path = _base_path
+  end
 
-    def scheme= _scheme
-      @@scheme = _scheme
-    end
+  def base_path
+    @@base_path
+  end
 
-    def scheme
-      @@scheme
-    end
+  def scheme= _scheme
+    @@scheme = _scheme
+  end
 
-    def login= _login
-      @@login = _login
-    end
+  def scheme
+    @@scheme
+  end
 
-    def login
-      @@login
-    end
+  def login= _login
+    @@login = _login
+  end
 
-    def password= _password
-      @@password = _password
-    end
+  def login
+    @@login
+  end
 
-    def password
-      @@password
-    end
+  def password= _password
+    @@password = _password
+  end
+
+  def password
+    @@password
+  end
 
   ##
   # Subscribe you to a url. id is optional but strongly recommanded has a unique identifier for this url. It will be used to help you identify which feed
@@ -104,7 +104,11 @@ module SuperfeedrAPI
 
     response = http_post(endpoint, request)
 
-    blk.call(response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204 || opts[:retrieve] && Integer(response.code) == 200, response) if blk
+    r = [response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204 || opts[:retrieve] && Integer(response.code) == 200, response]
+    if blk
+      blk.call(r) 
+    end
+    r
   end
 
   ##
@@ -136,11 +140,11 @@ module SuperfeedrAPI
 
     response = http_get(endpoint, request)
 
+    r = [response.body, Integer(response.code) == 200, response]
     if blk
-      blk.call(response.body, Integer(response.code) == 200, response) if blk
-    else
-      [response.body, Integer(response.code) == 200, response]
+      blk.call(r) 
     end
+    r
   end
 
   ##
@@ -167,7 +171,11 @@ module SuperfeedrAPI
 
     response = http_post(endpoint, request)
 
-    blk.call(response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204, response) if blk
+    r = response.body, opts[:async] && Integer(response.code) == 202 || Integer(response.code) == 204, response
+    if blk
+      blk.call(r) 
+    end
+    r
   end
 
   protected
