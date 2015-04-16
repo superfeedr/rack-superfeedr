@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "rack-superfeedr"
-  s.version = "0.4.0"
+  s.version = "0.4.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["julien51"]
-  s.date = "2015-04-15"
+  s.date = "2015-04-16"
   s.description = "A gem that provides a rack middleware to interract with Superfeedr's API. "
   s.email = "julien@superfeedr.com"
   s.extra_rdoc_files = [
