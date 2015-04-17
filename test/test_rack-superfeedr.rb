@@ -58,6 +58,17 @@ class TestRackSuperfeedr < Test::Unit::TestCase
 
 	context "Without Callbacks" do
 
+		context "Listing" do
+			should "yield a list of subscriptions" do
+				body, success, response = Rack::Superfeedr.subscribe('http://push-pub.appspot.com/feed', '12345')
+				success || flunk("Could not subscribe")
+				body, success, response = Rack::Superfeedr.list
+				success || flunk("Could not list #{body}")
+				hash = JSON.parse body
+				hash["subscriptions"] || flunk("List empty")
+			end
+		end
+
 		context "Subscribing" do
 
 			should "yield true with a simple subscribe" do 

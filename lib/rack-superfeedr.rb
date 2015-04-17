@@ -178,9 +178,40 @@ module SuperfeedrAPI
     r
   end
 
+  def list(opts = {}, &blk)
+    endpoint = @@superfeedr_endpoint
+    request = {
+      'hub.mode' => 'list',
+      'detailed' => true
+    }
+
+    if opts[:page]
+      request['page'] = opts[:page]
+    end
+
+    if opts[:by_page]
+      request['by_page'] = opts[:by_page]
+    end
+
+    if opts[:search]
+      request['search'] = opts[:search]
+    end
+    
+    request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
+
+    response = http_get(endpoint, request)
+
+    r = [response.body, Integer(response.code) == 200, response]
+    if blk
+      blk.call(r) 
+    end
+    r
+
+  end
+
   protected
 
-  def prep_request(url, id, endpoint, opts)
+  def prep_request(url = nil, id = nil, endpoint = nil, opts = {})
     feed_id = "#{id ? id : Base64.urlsafe_encode64(url)}"
 
     request = {
@@ -224,7 +255,7 @@ module SuperfeedrAPI
   end
 
   def generate_callback(url, feed_id)
-    if @@scheme == "https"
+    if @@scheme == "https" 
       URI::HTTPS.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
     else
       URI::HTTP.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
