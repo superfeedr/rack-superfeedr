@@ -3,7 +3,7 @@
 A gem that provides a rack middleware to interact with {Superfeedr}[http://superfeedr.com/]'s PubSubHubbub API. It let you *subscribe*, *unsubscribe* and *receive* incoming feed notifications.
 This should work with any Rack-compatible framework, as well as fully managed platforms like {Heroku}[http://www.heroku.com/].
 
-Warning : version 0.3 (July 2014) introduces a lot of breaking changes compared to previous versions. Upgrade carefully!
+If you're looking to integrate into a Rails application, we suggest you check this {Rails Engine}[https://rubygems.org/gems/superfeedr_engine], which is more suited and will handle a lot more things on your behalf!
 
 == Installing
 
@@ -18,16 +18,6 @@ You first need a {subscriber account}[http://superfeedr.com/subscriber] with Sup
 === Sinatra
 
 See the {example}[https://github.com/superfeedr/rack-superfeedr/blob/master/examples/sinatra_app.rb]... and {check the docs}[http://rubydoc.info/github/superfeedr/rack-superfeedr/master/Rack/Superfeedr] for more details. 
-
-=== Rails
-
-Tested with Rails 3.2, but should work with any Rails version that supports Rack.
-
-Install the gem (using bundle), and then in <code>config/application.rb</code>, inside the <code>class Application < Rails::Application</code> block, just add the following line.
-
-  config.middleware.use Rack::Superfeedr do |superfeedr|
-  ...
-  end
 
 
 == Contributing
