@@ -197,7 +197,11 @@ module SuperfeedrAPI
       request['search'] = opts[:search]
     end
     
-    request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
+    if opts[:login] && opts[:password]
+      request['authorization'] = Base64.encode64( "#{opts[:login]}:#{opts[:password]}" ).chomp
+    else
+      request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
+    end
 
     response = http_get(endpoint, request)
 
@@ -206,7 +210,34 @@ module SuperfeedrAPI
       blk.call(r) 
     end
     r
+  end
 
+  def search(query, opts = {}, &blk)
+    endpoint = @@superfeedr_endpoint
+    request = {
+      'hub.mode' => 'search',
+      'detailed' => true
+    }
+
+    if opts[:format] == "json"
+      request['format'] = "json"
+    end
+
+    if opts[:login] && opts[:password]
+      request['authorization'] = Base64.encode64( "#{opts[:login]}:#{opts[:password]}" ).chomp
+    else
+      request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
+    end
+
+    request['query'] = query
+
+    response = http_post(endpoint, request)
+
+    r = [response.body, Integer(response.code) == 200, response]
+    if blk
+      blk.call(r) 
+    end
+    r
   end
 
   protected
@@ -219,7 +250,9 @@ module SuperfeedrAPI
       'hub.callback' =>  generate_callback(url, feed_id)
     }
 
-    if endpoint == @@superfeedr_endpoint && @@login && @@password
+    if opts[:login] && opts[:password]
+      request['authorization'] = Base64.encode64( "#{opts[:login]}:#{opts[:password]}" ).chomp
+    elsif @@login && @@password
       request['authorization'] = Base64.encode64( "#{@@login}:#{@@password}" ).chomp
     end
 
