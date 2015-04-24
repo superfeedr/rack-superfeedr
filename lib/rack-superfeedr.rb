@@ -167,6 +167,29 @@ module SuperfeedrAPI
   end
 
   ##
+  # Replay as notification.
+  # Required:
+  # - url of the topic to be replayed
+  # - id to build the callback url
+  # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
+  # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
+  def replay(url, id = nil, opts = {}, &blk)
+    endpoint = opts[:hub] || @@superfeedr_endpoint
+    request = prep_request(url, id, endpoint, opts)
+
+    request['hub.mode'] = 'replay'
+
+    response = http_get(endpoint, request)
+
+    r = response.body, Integer(response.code) == 204, response
+    if blk
+      blk.call(r) 
+    end
+    r
+  end
+
+
+  ##
   # Lists subscriptions.
   # options (first argument) include:
   # - page (integer starts at 1)

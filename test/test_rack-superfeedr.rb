@@ -3,7 +3,7 @@ require 'rack'
 require_relative 'helper.rb'
 
 # To run tests locally, we're using runscope's passageway which proxies requests inside the firewall. (make sure you bind to port 4567)
-HOST = '4da832710d5.b.passageway.io'
+HOST = '3bbb3b2e39fe.a.passageway.io'
 PORT = 80
 # Also, we need superfeedr credentials.
 LOGIN = 'demo'
