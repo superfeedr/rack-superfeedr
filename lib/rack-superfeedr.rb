@@ -151,18 +151,6 @@ module SuperfeedrAPI
   # Unsubscribes a url. If you used an id for the susbcription, you need to use _the same_.
   # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
   # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
-  # You can also pass an opts third argument that will be merged with the options used in Typhoeus's Request (https://github.com/dbalatero/typhoeus)
-  
-  ##
-  # Subscribe you to a url. id needs to match the id you used to subscribe. 
-  # A 3rd options argument can be supplied with
-  # - sync => true (defaults to false) if you want to perfrom a verification of intent syncrhonously
-  # - async => true  (defaults to false) if you want to perfrom a verification of intent asyncrhonously
-  # - hub => if you want to use an explicit hub, defaults to Superfeedr's http://push.superfeedr.com
-  # It yields 3 arguments to a block:
-  # - body of the response (useful to debug failed notifications)
-  # - success flag 
-  # - response (useful to debug failed requests mostly)
   def unsubscribe(url, id = nil, opts = {}, &blk)
     endpoint = opts[:hub] || @@superfeedr_endpoint
     request = prep_request(url, id, endpoint, opts)
@@ -178,6 +166,12 @@ module SuperfeedrAPI
     r
   end
 
+  ##
+  # Lists subscriptions.
+  # options (first argument) include:
+  # - page (integer starts at 1)
+  # - by_page (integer, number of items per page)
+  # - search (string) a query string to only match certain subscriptions. Check Superfeedr docs for details
   def list(opts = {}, &blk)
     endpoint = @@superfeedr_endpoint
     request = {
