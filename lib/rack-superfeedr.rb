@@ -5,7 +5,7 @@ require 'uri'
 module SuperfeedrAPI
 
   @@superfeedr_endpoint = "https://push.superfeedr.com/"
-  @@port = 80
+  @@port = nil 
   @@host = 'my-app.com'
   @@base_path = '/superfeedr/feed/'
   @@scheme = 'http'
@@ -306,9 +306,11 @@ module SuperfeedrAPI
 
   def generate_callback(url, feed_id)
     if @@scheme == "https" 
-      URI::HTTPS.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
+      port ||= @@port || 443
+      URI::HTTPS.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => port }).to_s
     else
-      URI::HTTP.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => @@port }).to_s
+      port ||= @@port || 80
+      URI::HTTP.build({:scheme => @@scheme, :host => @@host, :path => "#{@@base_path}#{feed_id}", :port => port }).to_s
     end
   end
 end
