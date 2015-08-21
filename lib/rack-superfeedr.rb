@@ -171,6 +171,7 @@ module SuperfeedrAPI
   # Required:
   # - url of the topic to be replayed
   # - id to build the callback url
+  # - count => Integer (number of items to replay)
   # The optional block will be called to let you confirm the subscription (or not). This is not applicable for if you use params[:async] => true
   # It returns true if the unsubscription was successful (or will be confirmed if you used async => true in the options), false otherwise
   def replay(url, id = nil, opts = {}, &blk)
@@ -178,6 +179,10 @@ module SuperfeedrAPI
     request = prep_request(url, id, endpoint, opts)
 
     request['hub.mode'] = 'replay'
+
+    if opts[:count]
+      request['count'] = opts[:count]
+    end
 
     response = http_get(endpoint, request)
 
